@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <style>
+        body {
+            margin: 0px;
+            padding: 0px;
+            background: url(./img/background3.jpg);
+            background-position: center;
+            background-size: cover;
+            background-attachment: fixed;
+        }
+
+        #app {
+            z-index: 1;
+            width: 90%;
+            max-width: 1000px;
+            margin: 4vh auto;
+            border-radius: 30px;
+            box-shadow: 0px 0px 10px #323131;
+            padding: 10px;
+            background: rgba(118, 117, 117, 0.7);
+            -webkit-backdrop-filter: blur(3px);
+            backdrop-filter: blur(3px);
+        }
+
+        .title {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+
+        #res {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            height: 350px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 15px;
+            resize: vertical;
+            cursor: grabbing;
+        }
+
+        .promptText {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #e3e4ee;
+
+        }
+
+        #inputbox {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            height: 60px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding-top: 10px;
+            font-size: 16px;
+            resize: vertical;
+            cursor: crosshair;
+        }
+
+        .sendbox {
+            text-align: center;
+        }
+
+        button {
+            padding: 10px 50px;
+            background-color: #ffffff;
+            color: rgb(17, 17, 17);
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: inline-block;
+            margin: 10px;
+        }
+        .cursor_style{
+
+            cursor: grab;
+        }
+    </style>
+
+    <meta charset="UTF-8">
+    <meta content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" name="viewport"/>
+    <title>TEST</title>
+    <script src="./js/axios.min.js"></script>
+</head>
+
+<body>
+<div id="app">
+    <div class="cursor_style">
+    <div class="title">Chat-GPT-3.5 Turbo測試</div>
+    <textarea id="res"
+              placeholder="歡迎使用Chat-GPT-3.5 Turbo測試機器人，請記得5分鐘後Cookie會自動清除需再重新輸入一次!"></textarea>
+    <div class="promptText">請輸入</div>
+    <div class="inputbox">
+            <textarea id="inputbox" autofocus required type="text" cols="100" rows="2"
+                      placeholder="請直接打字，這邊不會出現  | "></textarea>
+    </div>
+    <div class="sendbox">
+        <button onclick="clear1()">清空</button>
+        <button onclick="ask()">傳送</button>
+    </div>
+</div>
+</div>
+<script>
+
+
+    window.apikey = "";
+    window.system = "";
+    window.prompt1 = "";
+    window.mt = 2096;
+    window.tpr = 1;
+    window.tp = 1;
+    window.fp = 0;
+    window.pp = 0;
+    window.mode = "true";
+    window.csize = 30;
+    window.username = "user";
+    const textarea = window.document.getElementById("res");
+    const inputbox = window.document.getElementById("inputbox");
+    var histories = [];
+    addText("Chat-GPT-3.5 Turbo測試");
+    if (getCookie("apikey") != undefined && getCookie("apikey") != "") {
+        window.apikey = getCookie("apikey");
+    } else {
+        window.apikey = prompt("輸入你的KEY! 儲存的Cookie將會在5分鐘後過期");
+        setCookie("apikey", window.apikey);
+    }
+    if (getCookie("prompt") != undefined) {
+        window.prompt1 = getCookie("prompt");
+    }
+    if (getCookie("mt") != undefined) {
+        window.mt = Number(getCookie("mt"));
+    }
+    if (getCookie("tpr") != undefined) {
+        window.tpr = Number(getCookie("tpr"));
+    }
+    if (getCookie("tp") != undefined) {
+        window.tp = Number(getCookie("tp"));
+    }
+    if (getCookie("fp") != undefined) {
+        window.fp = Number(getCookie("fp"));
+    }
+    if (getCookie("pp") != undefined) {
+        window.pp = Number(getCookie("pp"));
+    }
+    if (getCookie("mode") != undefined) {
+        window.mode = getCookie("mode");
+    }
+    if (getCookie("csize") != undefined) {
+        window.csize = Number(getCookie("csize"));
+    }
+
+    function ask() {
+        let intputtext = inputbox.value;
+        if (intputtext.startsWith("/")) {
+            intputtext = intputtext.substring(1);
+            switch (intputtext) {
+                case "help":
+                   addText("請輸入以下指令來更改ChatGPT的參數:\n\n" +
+        "/apikey  (用於設置apikey,只有在官網註冊獲取apikey才能正常使用本服務)\n" +
+        "/system  (為每次發送的文本添加系統級描述)\n" +
+        "/prompt  (為每次發送的文本添加前置上下文)\n" +
+        "/maxtoken  (用於控制ChatGPT每次能生成的詞數.)\n" +
+        "/tpr (可以用來控制ChatGPT生成的話的多樣性)\n" +
+        "/top  (可以用來控制ChatGPT生成的話的質量)\n" +
+        "/fp  (可以用來控制ChatGPT生成的話的“新穎程度”)\n" +
+        "/pp  (用於控制ChatGPT產生的句子的長度)\n" +
+        "/info  (用於顯示當前各項參數的值)\n" +
+        "/mode  (用於設置是否啟用持續對話模式)\n" +
+        "/csize  (用於設置記憶歷史對話的條數)\n" +
+        "/save  (用於將設置的參數保存到瀏覽器的Cookie,有效期1小時)");
+                    break;
+                case "info":
+                    addText(
+                        "當前各項參數:\n\n" +
+                        "apikey:" + window.apikey + "\n\n" +
+                        "system:" + window.system + "\n\n" +
+                        "prompt:" + window.prompt1 + "\n\n" +
+                        "Max_tokens:" + window.mt + "\n" +
+                        "Temperature:" + window.tpr + "\n" +
+                        "Top_p:" + window.tp + "\n" +
+                        "Frequency_penalty:" + window.fp + "\n" +
+                        "Presence_penalty:" + window.pp + "\n" +
+                        "mode:" + window.mode + "\n" +
+                        "csize:" + window.csize);
+                    break;
+                case "save":
+                    setCookie("apikey", window.apikey);
+                    setCookie("system", window.system);
+                    setCookie("prompt", window.prompt1);
+                    setCookie("mt", window.mt);
+                    setCookie("tpr", window.tpr);
+                    setCookie("tp", window.tp);
+                    setCookie("fp", window.fp);
+                    setCookie("pp", window.pp);
+                    setCookie("mode", window.mode);
+                    setCookie("csize", window.csize);
+                    addText("Cookie會儲存1小時")
+
+
+                    break;
+                case "apikey":
+                    window.apikey = prompt("apikey 請輸入從官網獲取到的apikey，默認為空");
+                    addText("設置成功");
+                    break;
+                case "system":
+                    window.system = prompt("system 請輸入要添加的系統級描述文本，默認為空");
+                    addText("設置成功");
+                    break;
+                case "prompt":
+                    window.prompt1 = prompt("prompt 請輸入要添加的上下文文本，默認為空");
+                    addText("設置成功");
+                    break;
+                case "maxtoken":
+                    window.mt = Number(prompt("Max_tokens 請輸入ChatGPT每次能生成的詞數，默認為2096"));
+                    addText("設置成功");
+                    break;
+                case "tpr":
+                    window.tpr = Number(prompt("Temperature 請輸入一個0到1.0的一位小數，默認為1.0"));
+                    addText("設置成功");
+                    break;
+                case "top":
+                    window.tp = Number(prompt("Top_p 請輸入一個0到1.0的一位小數，默認為1.0"));
+                    addText("設置成功");
+                    break;
+                case "fp":
+                    window.fp = Number(prompt("Frequency_penalty 請輸入一個-2.0到2.0的一位小數，默認為0"));
+                    addText("設置成功");
+                    break;
+                case "pp":
+                    window.pp = Number(prompt("Presence_penalty 請輸入一個-2.0到2.0的一位小數，默認為0"));
+                    addText("設置成功");
+                    break;
+                case "mode":
+                    window.mode = prompt("mode 輸入“true”開啟持續對話模式，輸入“false”關閉該模式，默認為“true”");
+                    addText("設置成功");
+                    break;
+                case "csize":
+                    window.csize = Number(prompt("csize 用於設置記憶歷史對話的條數，默認為30條"));
+                    addText("設置成功");
+                    break;
+                default:
+                    alert("未知指令");
+
+            }
+            inputbox.value = "";
+            return;
+        }
+        if (window.mode == "false") {
+            histories = [];
+        }
+
+        histories.push({"role": window.username, "content": intputtext});
+
+        if (histories.length > window.csize) {
+            histories = histories.slice(-window.csize);
+        }
+        addText(window.username + "說：\n\n" + intputtext);
+        textarea.value += '\n正在輸入中...';
+        textarea.scrollTop = textarea.scrollHeight;
+        const question = JSON.parse(JSON.stringify(histories));
+        if (window.prompt1 != "") {
+            question.unshift({"role": window.username, "content": window.prompt1});
+        }
+        if (window.system != "") {
+            question.unshift({"role": 'system', "content": window.system});
+        }
+        console.log(question);
+        axios.post('https://api.openai.com/v1/chat/completions', {
+                messages: question, max_tokens: window.mt, model: "gpt-3.5-turbo", temperature: window.tpr,
+                top_p: window.tp, frequency_penalty: window.fp, presence_penalty: window.pp
+            }, {
+                headers: {'Content-type': 'application/json', 'Authorization': 'Bearer ' + window.apikey}
+            }
+        ).then(response => {
+            removeLine();
+            let resultstring = response.data.choices[0].message.content;
+            let resultname = response.data.choices[0].message.role;
+            let result = {"role": resultname, "content": resultstring};
+            histories.push(result);
+            addText(resultname + "說:\n\n" + resultstring);
+            inputbox.value = "";
+        }).catch(error => {
+            removeLine();
+            console.log(error);
+            alert("服務器報錯:\n" + error);
+        });
+
+    }
+
+    function addText(text) {
+        textarea.value += "\n" + text + "\n" + "————————————————————";
+        textarea.scrollTop = textarea.scrollHeight;
+    }
+
+    function removeLine() {
+        let arr = textarea.value.split("\n");
+        arr = arr.slice(0, arr.length - 1);
+        textarea.value = arr.join("\n");
+    }
+
+    // 可以設定Cookie過期時間
+
+
+//  function setCookie(name, value) {
+//     let hours = 1;
+//     var expires = '';
+//     if (hours) {
+//         var date = new Date();
+//         date.setTime(date.getTime() + (hours * 60 * 60 * 1000));
+//         expires = '; expires=' + date.toUTCString();
+//     }
+//     document.cookie = name + '=' + (value || '') + expires + '; path=/';
+// }
+   // 可以設定Cookie過期時間
+function setCookie(name, value) {
+    let minutes = 5;
+    var expires = '';
+    if (minutes) {
+        var date = new Date();
+        date.setTime(date.getTime() + (minutes * 60 * 1000));
+        expires = '; expires=' + date.toUTCString();
+    }
+    document.cookie = name + '=' + (value || '') + expires + '; path=/';
+}
+
+    // 读取cookie
+    function getCookie(name) {
+        var nameEQ = name + "=";
+        var ca = document.cookie.split(';');
+        for (var i = 0; i < ca.length; i++) {
+            var c = ca[i];
+            while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+        }
+        return null;
+    }
+
+    function clear1() {
+        console.log("已清除對話紀錄。");
+        histories = [];
+        textarea.value = "";
+    }
+
+</script>
+
+</body>
+
+</html>
